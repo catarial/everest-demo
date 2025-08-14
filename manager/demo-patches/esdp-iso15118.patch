@@ -1,184 +1,10 @@
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/__init__.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/__init__.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/__init__.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/__init__.py
 new file mode 100644
 index 0000000..e69de29
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/edp_asn1_main.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/edp_asn1_main.py
-new file mode 100644
-index 0000000..6c77523
---- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/edp_asn1_main.py
-@@ -0,0 +1,166 @@
-+import esdp_asn1
-+from pyasn1.type import univ, constraint
-+from pyasn1.codec.der.encoder import encode
-+from pyasn1.codec.der.decoder import decode
-+from hexdump import hexdump
-+
-+# map extensionID value to class type for decoding
-+# IDs 1-6 are based on draft of ISO15118-200
-+# IDs > 6 are not defined in the document but are extrapolated from document section headers 
-+extension_ID_map = {
-+    1: esdp_asn1.ChargingInterface(), 
-+    2: esdp_asn1.BasicSignaling(), 
-+    3: esdp_asn1.IPv6Socket(),
-+    4: esdp_asn1.HighLevelCommunication(), 
-+    5: esdp_asn1.EMSPIdentifiers(),
-+    6: esdp_asn1.DCChargingLimits(),
-+    7: esdp_asn1.ConductiveChargingInterfaceLimitations(),
-+    8: esdp_asn1.EVCharacteristics(),
-+    9: esdp_asn1.ChargingStationCharacteristics()
-+    }
-+
-+# Decodes top level Extensions object and then each Standard extensions payload and prints to console
-+def full_decode(extensions_bin_rep):
-+    ext_obj_decode, rest = decode(extensions_bin_rep,asn1Spec=esdp_asn1.Extensions())
-+    print("Top level Extensions decode:")
-+    print(ext_obj_decode.prettyPrint())
-+
-+    #print(ext_obj_decode['standardized'][0].prettyPrint())
-+
-+    print("Individual Std Ext Decode:")
-+    for index in range(len(ext_obj_decode['standardized'])):
-+        print(ext_obj_decode['standardized'][index].prettyPrint())
-+        ext_id = ext_obj_decode['standardized'][index]['extensionID']
-+        std_ext_value_decode, rest = decode(ext_obj_decode['standardized'][index]['extensionValue'],asn1Spec=extension_ID_map[ext_id])
-+        indent = '\t'
-+        print(indent + type(std_ext_value_decode).__name__)
-+        print(indent + str(std_ext_value_decode).replace('\n','\n' + indent))
-+        print("\n")
-+
-+
-+
-+# Initialized Standard extensions with object and extensionID
-+chg_interface_ext = esdp_asn1.StandardizedExtension()
-+chg_interface_ext['extensionID'] = 1
-+basic_signal_ext = esdp_asn1.StandardizedExtension()
-+basic_signal_ext['extensionID'] = 2
-+ipv6_sock_ext = esdp_asn1.StandardizedExtension()
-+ipv6_sock_ext['extensionID'] = 3
-+hlc_ext = esdp_asn1.StandardizedExtension()
-+hlc_ext['extensionID'] = 4
-+emsp_ids_ext = esdp_asn1.StandardizedExtension()
-+emsp_ids_ext['extensionID'] = 5
-+dc_chg_limits_ext = esdp_asn1.StandardizedExtension()
-+dc_chg_limits_ext['extensionID'] = 6
-+
-+# IDS aren't defined, utilizing section numbers
-+con_chg_int_limits_ext = esdp_asn1.StandardizedExtension()
-+con_chg_int_limits_ext['extensionID'] = 7
-+ev_chars_ext = esdp_asn1.StandardizedExtension()
-+ev_chars_ext['extensionID'] = 8
-+evse_chars_ext = esdp_asn1.StandardizedExtension()
-+evse_chars_ext['extensionID'] = 9
-+
-+
-+### Set sample data for each extension and encode to OctetString ### 
-+
-+# Charging Interface Extension
-+chg_interface = esdp_asn1.ChargingInterface(1)
-+chg_interface_ext['extensionValue'] = univ.OctetString(encode(chg_interface))
-+
-+# Basic Signaling Extension
-+basic_signal_proto = esdp_asn1.BasicSignalingProtocol(3) # 'iec61851-23-ED2'
-+basic_signal = esdp_asn1.BasicSignaling()
-+basic_signal.append(basic_signal_proto)
-+basic_signal_ext['extensionValue'] = univ.OctetString(encode(basic_signal))
-+
-+# IPv6 socket Extension
-+
-+ipv6_sock = esdp_asn1.IPv6Socket()
-+ipv6_sock['ipv6Address'] = univ.OctetString(hexValue="0000000000000000000000000000fe00").subtype(subtypeSpec=constraint.ValueSizeConstraint(16, 16))
-+ipv6_sock['tcpPort'] = univ.OctetString(hexValue="00008080").subtype(subtypeSpec=constraint.ValueSizeConstraint(4, 4))
-+ipv6_sock_ext['extensionValue'] = univ.OctetString(encode(ipv6_sock))
-+
-+# HLC Extension
-+hlc_seq = esdp_asn1.HighLevelCommunication()
-+hlc_tup1 = esdp_asn1.HighLevelCommunicationTuple()
-+hlc_tup1['hlcProtocol'] = 1
-+sec_prof_tuple = esdp_asn1.SecurityProfileTuple()
-+sec_prof_tuple['securityProfile'] = 0
-+auth_method = esdp_asn1.AuthorizationMethod(0) # eim
-+energy_transfer = esdp_asn1.EnergyTransferMode(0)
-+sec_prof_tuple['authorizationMethod'].append(auth_method)
-+sec_prof_tuple['energyTransferMode'].append(energy_transfer)
-+hlc_tup1['securityProfileTuple'].append(sec_prof_tuple)
-+hlc_seq.append(hlc_tup1)
-+hlc_ext['extensionValue'] = univ.OctetString(encode(hlc_seq))
-+
-+# EMSP Identifiers Extension
-+emsp_id1 = esdp_asn1.EMSPIdentifier(hexValue="abcde0101") #adding trailing 0, not desireable
-+emsp_id2 = esdp_asn1.EMSPIdentifier(hexValue="abcde0202")
-+emsp_ids = esdp_asn1.EMSPIdentifiers()
-+emsp_ids.extend([emsp_id1,emsp_id2])
-+emsp_ids_ext['extensionValue'] = univ.OctetString(encode(emsp_ids))
-+
-+# DC charging limits Extension
-+dc_chg_limits = esdp_asn1.DCChargingLimits()
-+dc_chg_limits['maximumVoltage'] = 920
-+dc_chg_limits['minimumVoltage'] = 250
-+dc_chg_limits_ext['extensionValue'] = univ.OctetString(encode(dc_chg_limits))
-+
-+# Conductive charging interface limitations Extensions
-+conductive_chg_int_limits = esdp_asn1.ConductiveChargingInterfaceLimitations()
-+conductive_chg_int_limits['maximumContactorTemperature'] = 80
-+con_chg_int_limits_ext['extensionValue'] = univ.OctetString(encode(conductive_chg_int_limits))
-+
-+# EV Characteristics Extensions
-+ev_chars = esdp_asn1.EVCharacteristics()
-+ev_chars['vehicleIdentificationNumber'] = univ.OctetString(hexValue='00112233445566778899aabbccddeeff00').subtype(subtypeSpec=constraint.ValueSizeConstraint(17, 17))
-+ev_chars['evccSoftwareVersion'] = "v2.5.6_20241031"
-+ev_chars_ext['extensionValue'] = univ.OctetString(encode(ev_chars))
-+
-+# Charging Station Characteristics Extensions
-+chg_stn_char = esdp_asn1.ChargingStationCharacteristics()
-+chg_stn_char['seccSoftwareVersion'] = "v3.1.0_beta"
-+chg_stn_char['evseID'] = univ.OctetString(hexValue='5A0E').subtype(subtypeSpec=constraint.ValueSizeConstraint(1, esdp_asn1.MAX))
-+evse_chars_ext['extensionValue'] = univ.OctetString(encode(chg_stn_char))
-+
-+### Create top level StandardExtensions and Extensions objects ###
-+
-+std_extensions = esdp_asn1.StandardizedExtensions()
-+std_extensions.extend([chg_interface_ext,basic_signal_ext, ipv6_sock_ext, hlc_ext, emsp_ids_ext, dc_chg_limits_ext, con_chg_int_limits_ext, ev_chars_ext, evse_chars_ext])
-+#external_extensions = esdp_asn1.ExternalExtensions()
-+
-+extensions = esdp_asn1.Extensions()
-+extensions['standardized'] = std_extensions
-+#print(extensions.prettyPrint())
-+
-+### Encode top level Extensions object, print to string and save to file ###
-+bin_rep = encode(extensions)
-+
-+print("Hexdump of encoded Extensions:")
-+hexdump(bin_rep)
-+print(bin_rep)
-+#full_decode(bin_rep)
-+
-+# write bytes to file
-+with open("esdp_encoded.dat", "wb") as binary_file:
-+    # Write bytes to file
-+    binary_file.write(bin_rep)
-+
-+
-+#############################################
-+#################   Decode  #################
-+#############################################
-+
-+# Decode from bytes string literal
-+bin_rep_str = b'0\x81\xd40\x81\xd10\x08\x02\x01\x01\x04\x03\n\x01\x010\n\x02\x01\x02\x04\x050\x03\n\x01\x030\x1f\x02\x01\x03\x04\x1a0\x18\x04\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xfe\x00\x04\x04\x00\x00\x80\x800\x1d\x02\x01\x04\x04\x180\x160\x14\n\x01\x010\x0f0\r\n\x01\x000\x03\n\x01\x000\x03\n\x01\x000\x15\x02\x01\x05\x04\x100\x0e\x04\x05\xab\xcd\xe0\x10\x10\x04\x05\xab\xcd\xe0  0\x0f\x02\x01\x06\x04\n0\x08\x02\x02\x03\x98\x02\x02\x00\xfa0\n\x02\x01\x07\x04\x050\x03\x02\x01P0+\x02\x01\x08\x04&0$\x04\x11\x00\x11"3DUfw\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x0c\x0fv2.5.6_202410310\x18\x02\x01\t\x04\x130\x11\x04\x02Z\x0e\x0c\x0bv3.1.0_beta'
-+#full_decode(bin_rep_str)
-+
-+
-+# Decode from binary file
-+filename = "C:/Users/ewatt/Box/ChargeX Root Folder/INTERNAL FOLDERS ONLY/Communications Task Force - Internal Folder/ESDP/ASN1 C/ASN1C_full_output.ber"
-+
-+with open(filename, 'rb') as file:
-+    binary_data = file.read()
-+    full_decode(binary_data)
-\ No newline at end of file
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_asn1.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_asn1.py
-new file mode 100644
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_asn1.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_asn1.py
 index 0000000..e176970
 --- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_asn1.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_asn1.py
 @@ -0,0 +1,230 @@
 +# Auto-generated by asn1ate v.0.6.1.dev0 from esdp_definitions.asn
 +
@@ -410,341 +236,29 @@ index 0000000..e176970
 +    namedtype.NamedType('ipv6Address', univ.OctetString().subtype(subtypeSpec=constraint.ValueSizeConstraint(16, 16))),
 +    namedtype.NamedType('tcpPort', univ.OctetString().subtype(subtypeSpec=constraint.ValueSizeConstraint(4, 4)))
 +)
-\ No newline at end of file
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_definitions.asn /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_definitions.asn
-new file mode 100644
-index 0000000..1a6937c
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_asn1_main.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_asn1_main.py
+index 0000000..bbe10cb
 --- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_definitions.asn
-@@ -0,0 +1,55 @@
-+ISO15118-200 DEFINITIONS ::=
-+BEGIN
-+
-+
-+Extensions ::= SEQUENCE { 
-+    standardized StandardizedExtensions, 
-+    external ExternalExtensions OPTIONAL 
-+
-+}
-+StandardizedExtensions ::= SEQUENCE (SIZE (1..MAX)) OF StandardizedExtension
-+
-+StandardizedExtension ::= SEQUENCE { 
-+    extensionID INTEGER, 
-+    extensionValue OCTET STRING 
-+}
-+
-+ExternalExtensions ::= SEQUENCE (SIZE (1..MAX)) OF ExternalExtension
-+
-+ExternalExtension ::= SEQUENCE { 
-+    externalExtensionID OBJECT IDENTIFIER, 
-+    critical BOOLEAN DEFAULT TRUE, 
-+    extensionValue OCTET STRING }
-+
-+-- StandardExtensions --
-+
-+
-+
-+ChargingInterface ::= ENUMERATED { nacs (0), ccs1 (1), ccs2 (2), chademo (3), chaoji (4), type-1 (5), type-2 (6), mcs (7) }
-+
-+BasicSignaling ::= SEQUENCE (SIZE (1..MAX)) OF BasicSignalingProtocol
-+BasicSignalingProtocol ::= ENUMERATED { iec61851-1-ED2 (0), iec61851-1-ED3 (1), iec61851-23-ED1 (2), iec61851-23-ED2 (3) }
-+
-+IPv6Socket ::= SEQUENCE { ipv6Address OCTET STRING (SIZE (16)), tcpPort OCTET STRING (SIZE (4)) }
-+
-+HighLevelCommunication ::= SEQUENCE (SIZE (1..MAX)) OF HighLevelCommunicationTuple
-+HighLevelCommunicationTuple ::= SEQUENCE { hlcProtocol HLCProtocol, securityProfileTuple SEQUENCE(SIZE (1..MAX)) OF SecurityProfileTuple }
-+SecurityProfileTuple ::= SEQUENCE { securityProfile SecurityProfile, authorizationMethod SEQUENCE(SIZE (1..MAX)) OF AuthorizationMethod, energyTransferMode SEQUENCE(SIZE (1..MAX)) OF EnergyTransferMode, ... }
-+HLCProtocol ::= ENUMERATED { din-spec-70121-2014 (0), iso-15118-2-2014 (1), iso-15118-20-2022 (2), sae-j2847-2-202309 (3) }
-+SecurityProfile ::= ENUMERATED { tcpOnly (0), tls12-server (2), tls13-mutual (20) }
-+AuthorizationMethod ::= ENUMERATED { eim (0), pnc-2 (1), pnc-20 (2) }
-+EnergyTransferMode ::= ENUMERATED { dc (0), dc-bpt (1), ac (2), ac-bpt (3) }
-+
-+EMSPIdentifiers ::= SEQUENCE (SIZE (1..MAX)) OF EMSPIdentifier
-+EMSPIdentifier ::= OCTET STRING (SIZE (1..MAX))
-+
-+DCChargingLimits ::= SEQUENCE { maximumVoltage INTEGER, minimumVoltage INTEGER, ... }
-+
-+ConductiveChargingInterfaceLimitations ::= SEQUENCE { maximumContactorTemperature INTEGER, ... }
-+
-+EVCharacteristics ::= SEQUENCE { vehicleIdentificationNumber OCTET STRING (SIZE (17)) OPTIONAL, evccSoftwareVersion UTF8String (SIZE (1..MAX)) OPTIONAL }
-+
-+ChargingStationCharacteristics ::= SEQUENCE { evseID OCTET STRING (SIZE (1..MAX)) OPTIONAL, seccSoftwareVersion UTF8String (SIZE (1..MAX)) OPTIONAL }
-+
-+END
-+
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_encoded.dat /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_encoded.dat
-new file mode 100644
-index 0000000..14f98aa
-Binary files /dev/null and /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/esdp_encoded.dat differ
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/requirements.txt /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/requirements.txt
-new file mode 100644
-index 0000000..d3fa4ac
---- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/archived/requirements.txt
-@@ -0,0 +1,2 @@
-+hexdump==3.3
-+pyasn1==0.4.8
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_asn1.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_asn1.py
-new file mode 100644
-index 0000000..e176970
---- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_asn1.py
-@@ -0,0 +1,230 @@
-+# Auto-generated by asn1ate v.0.6.1.dev0 from esdp_definitions.asn
-+
-+# (last modified on 2024-10-30 15:45:03.203826)
-+
-+
-+# ISO15118-200
-+from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
-+
-+MAX = 2^32 -1 # MAX is a defined concept in ASN.1, autogen didn't differentiate as expected to put in the real max value of the parent type (not all parent types have finite maximums defined)
-+
-+class AuthorizationMethod(univ.Enumerated):
-+    pass
-+
-+
-+AuthorizationMethod.namedValues = namedval.NamedValues(
-+    ('eim', 0),
-+    ('pnc-2', 1),
-+    ('pnc-20', 2)
-+)
-+
-+
-+class BasicSignalingProtocol(univ.Enumerated):
-+    pass
-+
-+
-+BasicSignalingProtocol.namedValues = namedval.NamedValues(
-+    ('iec61851-1-ED2', 0),
-+    ('iec61851-1-ED3', 1),
-+    ('iec61851-23-ED1', 2),
-+    ('iec61851-23-ED2', 3)
-+)
-+
-+
-+class BasicSignaling(univ.SequenceOf):
-+    pass
-+
-+
-+BasicSignaling.componentType = BasicSignalingProtocol()
-+BasicSignaling.subtypeSpec=constraint.ValueSizeConstraint(1, MAX)
-+
-+
-+class ChargingInterface(univ.Enumerated):
-+    pass
-+
-+
-+ChargingInterface.namedValues = namedval.NamedValues(
-+    ('nacs', 0),
-+    ('ccs1', 1),
-+    ('ccs2', 2),
-+    ('chademo', 3),
-+    ('chaoji', 4),
-+    ('type-1', 5),
-+    ('type-2', 6),
-+    ('mcs', 7)
-+)
-+
-+
-+class ChargingStationCharacteristics(univ.Sequence):
-+    pass
-+
-+
-+ChargingStationCharacteristics.componentType = namedtype.NamedTypes(
-+    namedtype.OptionalNamedType('evseID', univ.OctetString().subtype(subtypeSpec=constraint.ValueSizeConstraint(1, MAX))),
-+    namedtype.OptionalNamedType('seccSoftwareVersion', char.UTF8String().subtype(subtypeSpec=constraint.ValueSizeConstraint(1, MAX)))
-+)
-+
-+
-+class ConductiveChargingInterfaceLimitations(univ.Sequence):
-+    pass
-+
-+
-+ConductiveChargingInterfaceLimitations.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('maximumContactorTemperature', univ.Integer())
-+)
-+
-+
-+class DCChargingLimits(univ.Sequence):
-+    pass
-+
-+
-+DCChargingLimits.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('maximumVoltage', univ.Integer()),
-+    namedtype.NamedType('minimumVoltage', univ.Integer())
-+)
-+
-+
-+class EMSPIdentifier(univ.OctetString):
-+    pass
-+
-+
-+EMSPIdentifier.subtypeSpec = constraint.ValueSizeConstraint(1, MAX)
-+
-+
-+class EMSPIdentifiers(univ.SequenceOf):
-+    pass
-+
-+
-+EMSPIdentifiers.componentType = EMSPIdentifier()
-+EMSPIdentifiers.subtypeSpec=constraint.ValueSizeConstraint(1, MAX)
-+
-+
-+class EVCharacteristics(univ.Sequence):
-+    pass
-+
-+
-+EVCharacteristics.componentType = namedtype.NamedTypes(
-+    namedtype.OptionalNamedType('vehicleIdentificationNumber', univ.OctetString().subtype(subtypeSpec=constraint.ValueSizeConstraint(17, 17))),
-+    namedtype.OptionalNamedType('evccSoftwareVersion', char.UTF8String().subtype(subtypeSpec=constraint.ValueSizeConstraint(1, MAX)))
-+)
-+
-+
-+class EnergyTransferMode(univ.Enumerated):
-+    pass
-+
-+
-+EnergyTransferMode.namedValues = namedval.NamedValues(
-+    ('dc', 0),
-+    ('dc-bpt', 1),
-+    ('ac', 2),
-+    ('ac-bpt', 3)
-+)
-+
-+
-+class ExternalExtension(univ.Sequence):
-+    pass
-+
-+
-+ExternalExtension.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('externalExtensionID', univ.ObjectIdentifier()),
-+    namedtype.DefaultedNamedType('critical', univ.Boolean().subtype(value=1)),
-+    namedtype.NamedType('extensionValue', univ.OctetString())
-+)
-+
-+
-+class ExternalExtensions(univ.SequenceOf):
-+    pass
-+
-+
-+ExternalExtensions.componentType = ExternalExtension()
-+ExternalExtensions.subtypeSpec=constraint.ValueSizeConstraint(1, MAX)
-+
-+
-+class StandardizedExtension(univ.Sequence):
-+    pass
-+
-+
-+StandardizedExtension.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('extensionID', univ.Integer()),
-+    namedtype.NamedType('extensionValue', univ.OctetString())
-+)
-+
-+
-+class StandardizedExtensions(univ.SequenceOf):
-+    pass
-+
-+
-+StandardizedExtensions.componentType = StandardizedExtension()
-+StandardizedExtensions.subtypeSpec=constraint.ValueSizeConstraint(1, MAX)
-+
-+
-+class Extensions(univ.Sequence):
-+    pass
-+
-+
-+Extensions.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('standardized', StandardizedExtensions()),
-+    namedtype.OptionalNamedType('external', ExternalExtensions())
-+)
-+
-+
-+class HLCProtocol(univ.Enumerated):
-+    pass
-+
-+
-+HLCProtocol.namedValues = namedval.NamedValues(
-+    ('din-spec-70121-2014', 0),
-+    ('iso-15118-2-2014', 1),
-+    ('iso-15118-20-2022', 2),
-+    ('sae-j2847-2-202309', 3)
-+)
-+
-+
-+class SecurityProfile(univ.Enumerated):
-+    pass
-+
-+
-+SecurityProfile.namedValues = namedval.NamedValues(
-+    ('tcpOnly', 0),
-+    ('tls12-server', 2),
-+    ('tls13-mutual', 20)
-+)
-+
-+
-+class SecurityProfileTuple(univ.Sequence):
-+    pass
-+
-+
-+SecurityProfileTuple.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('securityProfile', SecurityProfile()),
-+    namedtype.NamedType('authorizationMethod', univ.SequenceOf(componentType=AuthorizationMethod()).subtype(subtypeSpec=constraint.ValueSizeConstraint(1, MAX))),
-+    namedtype.NamedType('energyTransferMode', univ.SequenceOf(componentType=EnergyTransferMode()).subtype(subtypeSpec=constraint.ValueSizeConstraint(1, MAX)))
-+)
-+
-+
-+class HighLevelCommunicationTuple(univ.Sequence):
-+    pass
-+
-+
-+HighLevelCommunicationTuple.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('hlcProtocol', HLCProtocol()),
-+    namedtype.NamedType('securityProfileTuple', univ.SequenceOf(componentType=SecurityProfileTuple()).subtype(subtypeSpec=constraint.ValueSizeConstraint(1, MAX)))
-+)
-+
-+
-+class HighLevelCommunication(univ.SequenceOf):
-+    pass
-+
-+
-+HighLevelCommunication.componentType = HighLevelCommunicationTuple()
-+HighLevelCommunication.subtypeSpec=constraint.ValueSizeConstraint(1, MAX)
-+
-+
-+class IPv6Socket(univ.Sequence):
-+    pass
-+
-+
-+IPv6Socket.componentType = namedtype.NamedTypes(
-+    namedtype.NamedType('ipv6Address', univ.OctetString().subtype(subtypeSpec=constraint.ValueSizeConstraint(16, 16))),
-+    namedtype.NamedType('tcpPort', univ.OctetString().subtype(subtypeSpec=constraint.ValueSizeConstraint(4, 4)))
-+)
-\ No newline at end of file
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_asn1_main.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_asn1_main.py
-new file mode 100644
-index 0000000..9f99b57
---- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_asn1_main.py
-@@ -0,0 +1,229 @@
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_asn1_main.py
+@@ -0,0 +1,236 @@
 +from iso15118.evcc.asn1 import esdp_asn1
 +from pyasn1.type import univ, constraint
 +from pyasn1.codec.der.encoder import encode
 +from pyasn1.codec.der.decoder import decode
-+from hexdump import hexdump
++# from hexdump import hexdump
 +import os
 +import logging
 +logger = logging.getLogger(__name__)
 +
-+def encode_data():
++def encode_data(security):
 +    # map extensionID value to class type for decoding
 +    # IDs 1-6 are based on draft of ISO15118-200
-+    # IDs > 6 are not defined in the document but are extrapolated from document section headers 
++    # IDs > 6 are not defined in the document but are extrapolated from document section headers
 +    extension_ID_map = {
-+        1: esdp_asn1.ChargingInterface(), 
-+        2: esdp_asn1.BasicSignaling(), 
++        1: esdp_asn1.ChargingInterface(),
++        2: esdp_asn1.BasicSignaling(),
 +        3: esdp_asn1.IPv6Socket(),
-+        4: esdp_asn1.HighLevelCommunication(), 
++        4: esdp_asn1.HighLevelCommunication(),
 +        5: esdp_asn1.EMSPIdentifiers(),
 +        6: esdp_asn1.DCChargingLimits(),
 +        7: esdp_asn1.ConductiveChargingInterfaceLimitations(),
@@ -776,7 +290,7 @@ index 0000000..9f99b57
 +    evse_chars_ext['extensionID'] = 9
 +
 +
-+    ### Set sample data for each extension and encode to OctetString ### 
++    ### Set sample data for each extension and encode to OctetString ###
 +
 +    # Charging Interface Extension
 +    chg_interface = esdp_asn1.ChargingInterface(1)
@@ -801,7 +315,7 @@ index 0000000..9f99b57
 +    hlc_tup1 = esdp_asn1.HighLevelCommunicationTuple()
 +    hlc_tup1['hlcProtocol'] = 1
 +    sec_prof_tuple = esdp_asn1.SecurityProfileTuple()
-+    sec_prof_tuple['securityProfile'] = 0
++    sec_prof_tuple['securityProfile'] = security
 +    auth_method = esdp_asn1.AuthorizationMethod(0) # eim
 +    energy_transfer = esdp_asn1.EnergyTransferMode(0)
 +    sec_prof_tuple['authorizationMethod'].append(auth_method)
@@ -864,7 +378,7 @@ index 0000000..9f99b57
 +    with open("esdp_encoded.dat", "wb") as binary_file:
 +        # Write bytes to file
 +        binary_file.write(bin_rep)
-+    
++
 +    file_size = os.path.getsize(os.getcwd()+"/esdp_encoded.dat")
 +
 +    logger.info(f'ASN1 file written to esdp_encoded.dat at {os.getcwd()}')
@@ -876,10 +390,10 @@ index 0000000..9f99b57
 +def decode_data(esdp_extensions):
 +
 +    extension_ID_map = {
-+    1: esdp_asn1.ChargingInterface(), 
-+    2: esdp_asn1.BasicSignaling(), 
++    1: esdp_asn1.ChargingInterface(),
++    2: esdp_asn1.BasicSignaling(),
 +    3: esdp_asn1.IPv6Socket(),
-+    4: esdp_asn1.HighLevelCommunication(), 
++    4: esdp_asn1.HighLevelCommunication(),
 +    5: esdp_asn1.EMSPIdentifiers(),
 +    6: esdp_asn1.DCChargingLimits(),
 +    7: esdp_asn1.ConductiveChargingInterfaceLimitations(),
@@ -904,7 +418,7 @@ index 0000000..9f99b57
 +        #print(ext_obj_decode['standardized'][index].prettyPrint())
 +        ext_id = ext_obj_decode['standardized'][index]['extensionID']
 +        std_ext_value_decode, rest = decode(ext_obj_decode['standardized'][index]['extensionValue'],asn1Spec=extension_ID_map[ext_id])
-+        
++
 +        if isinstance(std_ext_value_decode, esdp_asn1.IPv6Socket):
 +            ipv6addr = std_ext_value_decode['ipv6Address']
 +            # print(bytes(ipv6))
@@ -912,7 +426,14 @@ index 0000000..9f99b57
 +            # print(int.from_bytes(bytes(prt),'big'))
 +
 +        if isinstance(std_ext_value_decode, esdp_asn1.HighLevelCommunication):
-+            sec = std_ext_value_decode[0][1][0][0]
++            #sec = std_ext_value_decode[0][1][0][0]
++            sec = esdp_asn1.SecurityProfile(0) # 'tcpOnly'
++            for hlc in std_ext_value_decode:
++                for secproftuple in hlc['securityProfileTuple']:
++                    if str(secproftuple['securityProfile']) == 'tls12-server':
++                        sec = secproftuple['securityProfile']
++
++
 +
 +        # indent = '\t'
 +        # print({indent + type(std_ext_value_decode).__name__})
@@ -950,40 +471,38 @@ index 0000000..9f99b57
 +
 +
 +# Decode from binary file
-+filename = "C:/Users/ewatt/Box/ChargeX Root Folder/INTERNAL FOLDERS ONLY/Communications Task Force - Internal Folder/ESDP/ASN1 C/ASN1C_full_output.ber"
++filename = "ASN1C_full_output.ber"
 +
 +with open(filename, 'rb') as file:
 +    binary_data = file.read()
 +    full_decode(binary_data)
 +"""
-\ No newline at end of file
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_definitions.asn /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_definitions.asn
-new file mode 100644
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_definitions.asn /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_definitions.asn
 index 0000000..1a6937c
 --- /dev/null
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_definitions.asn
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/asn1/esdp_definitions.asn
 @@ -0,0 +1,55 @@
 +ISO15118-200 DEFINITIONS ::=
 +BEGIN
 +
 +
-+Extensions ::= SEQUENCE { 
-+    standardized StandardizedExtensions, 
-+    external ExternalExtensions OPTIONAL 
++Extensions ::= SEQUENCE {
++    standardized StandardizedExtensions,
++    external ExternalExtensions OPTIONAL
 +
 +}
 +StandardizedExtensions ::= SEQUENCE (SIZE (1..MAX)) OF StandardizedExtension
 +
-+StandardizedExtension ::= SEQUENCE { 
-+    extensionID INTEGER, 
-+    extensionValue OCTET STRING 
++StandardizedExtension ::= SEQUENCE {
++    extensionID INTEGER,
++    extensionValue OCTET STRING
 +}
 +
 +ExternalExtensions ::= SEQUENCE (SIZE (1..MAX)) OF ExternalExtension
 +
-+ExternalExtension ::= SEQUENCE { 
-+    externalExtensionID OBJECT IDENTIFIER, 
-+    critical BOOLEAN DEFAULT TRUE, 
++ExternalExtension ::= SEQUENCE {
++    externalExtensionID OBJECT IDENTIFIER,
++    critical BOOLEAN DEFAULT TRUE,
 +    extensionValue OCTET STRING }
 +
 +-- StandardExtensions --
@@ -1018,14 +537,10 @@ index 0000000..1a6937c
 +
 +END
 +
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_encoded.dat /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_encoded.dat
-new file mode 100644
-index 0000000..14f98aa
-Binary files /dev/null and /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/asn1/esdp_encoded.dat differ
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/comm_session_handler.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/comm_session_handler.py
-index 0590888..a458900 100644
---- /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/comm_session_handler.py
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/comm_session_handler.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/comm_session_handler.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/comm_session_handler.py
+index 4e658e8..c76b777
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/comm_session_handler.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/comm_session_handler.py
 @@ -39,6 +39,7 @@ from iso15118.shared.messages.enums import (
      ISOV20PayloadTypes,
      Namespace,
@@ -1057,7 +572,7 @@ index 0590888..a458900 100644
  
  
  class EVCCCommunicationSession(V2GCommunicationSession):
-@@ -286,8 +290,10 @@ class CommunicationSessionHandler:
+@@ -287,8 +291,10 @@ class CommunicationSessionHandler:
          self.config: EVCCConfig = config
          self.iface: str = iface
          self.ev_controller: EVControllerInterface = ev_controller
@@ -1068,7 +583,7 @@ index 0590888..a458900 100644
  
          # Set the selected EXI codec implementation
          EXI().set_exi_codec(codec)
-@@ -339,6 +345,30 @@ class CommunicationSessionHandler:
+@@ -340,6 +346,34 @@ class CommunicationSessionHandler:
          logger.info(f"Sending SDPRequest: {sdp_request}")
          await self.udp_client.send_and_receive(v2gtp_msg)
  
@@ -1084,7 +599,11 @@ index 0590888..a458900 100644
 +        while not self.udp_client.started:
 +            await asyncio.sleep(0.1)
 +
-+        esdp_extensions, file_size = esdp_asn1_main.encode_data()
++        security = 0 # tcpOnly
++        if self.config.use_tls:
++            security = 2 # tls12-server
++
++        esdp_extensions, file_size = esdp_asn1_main.encode_data(security)
 +
 +        logger.info(f"ESDP packet size is {file_size} bytes")
 +
@@ -1093,13 +612,13 @@ index 0590888..a458900 100644
 +        v2gtp_msg = V2GTPMessage(
 +            Protocol.UNKNOWN, 0x2000, esdp_request.to_payload()
 +        )
-+        
++
 +        await self.udp_client.send_and_receive_esdp(v2gtp_msg)
 +
      async def restart_sdp(self, new_sdp_cycle: bool):
          """
          Initiates a new SECC Discovery Protocol (SDP) request message, which the
-@@ -353,7 +383,7 @@ class CommunicationSessionHandler:
+@@ -354,7 +388,7 @@ class CommunicationSessionHandler:
  
          The constant SDP_MAX_REQUEST_COUNTER is used to compare the current
          SDP request counter with the maximum allowed number of SDP requests in
@@ -1108,7 +627,7 @@ index 0590888..a458900 100644
  
          However, once SDP was successful and the ISO 15118 communication
          proceeds, an error can occur later while processing one of the messages.
-@@ -379,39 +409,46 @@ class CommunicationSessionHandler:
+@@ -380,39 +414,46 @@ class CommunicationSessionHandler:
              SDPFailedError
          """
          shutdown_msg = (
@@ -1128,11 +647,11 @@ index 0590888..a458900 100644
 -            self._sdp_retry_cycles -= 1
 -            self.sdp_retries_number = SDP_MAX_REQUEST_COUNTER
 +            if self._esdp_retry_cycles == 0:
-+            	raise SDPFailedError(
-+            	f"EVCC tried to initiate a V2GCommunicationSession, "
-+            	"but maximum number of ESDP retry cycles "
-+            	"({self.esdp_retry_cycles}) is now reached. {shutdown_msg}"
-+            	)
++               raise SDPFailedError(
++               f"EVCC tried to initiate a V2GCommunicationSession, "
++               "but maximum number of ESDP retry cycles "
++               "({self.esdp_retry_cycles}) is now reached. {shutdown_msg}"
++               )
 +
 +            self._esdp_retry_cycles -= 1
 +            self.esdp_retries_number = ESDP_MAX_REQUEST_COUNTER
@@ -1168,12 +687,12 @@ index 0590888..a458900 100644
 +                logger.info("Sending regular SDP Request")
 +                self.sdp_retries_number-=1
 +
-+            else:       
++            else:
 +                raise SDPFailedError(f"SDPRequest was not successful. " f"{shutdown_msg}")
  
      async def start_comm_session(self, host: IPv6Address, port: int, is_tls: bool):
          server_type = "TLS" if is_tls else "TCP"
-@@ -519,6 +556,56 @@ class CommunicationSessionHandler:
+@@ -520,6 +561,60 @@ class CommunicationSessionHandler:
              ip_address_int = int.from_bytes(sdp_response.ip_address, "big")
              host = IPv6Address(ip_address_int)
              port = sdp_response.port
@@ -1212,9 +731,7 @@ index 0590888..a458900 100644
 +            #
 +            # The rationale behind this might be that the EV OEM trades convenience
 +            # (the EV driver can always charge) over security.
-+            if (not secc_signals_tls and self.config.enforce_tls) or (
-+                secc_signals_tls and not self.config.use_tls
-+            ):
++            if (not secc_signals_tls and self.config.enforce_tls):
 +                logger.error(
 +                    "Security mismatch, can't initiate communication session."
 +                    f"\nEVCC setting USE_TLS: {self.config.use_tls}"
@@ -1222,6 +739,12 @@ index 0590888..a458900 100644
 +                    f"\nSDP response signals TLS: {secc_signals_tls}"
 +                )
 +                return
++            # for esdp, multiple security profiles can be offered
++            # the esdp decode_data function currently returns security = TLS if TLS is one of the options
++            # if only TLS is offered by SECC, this change will cause the EVCC to attempt a TCP connection which should get rejected
++            elif(secc_signals_tls and not self.config.use_tls):
++                secc_signals_tls = False
++
 +
 +            ip_address_int = int.from_bytes(esdp_response.ip_address, "big")
 +            host = IPv6Address(ip_address_int)
@@ -1230,10 +753,10 @@ index 0590888..a458900 100644
          elif v2gtp_msg.payload_type == ISOV20PayloadTypes.SDP_RESPONSE_WIRELESS:
              raise NotImplementedError(
                  "The incoming datagram seems to be a SDPResponse "
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/evcc_config.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/evcc_config.py
-index e9c7ac4..93cc974 100644
---- /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/evcc_config.py
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/evcc_config.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/evcc_config.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/evcc_config.py
+index e9c7ac4..93cc974
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/evcc_config.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/evcc_config.py
 @@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
  
  class EVCCConfig(BaseModel):
@@ -1244,10 +767,10 @@ index e9c7ac4..93cc974 100644
          "ISO_15118_20_AC",
          "ISO_15118_20_DC",
      ]
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/transport/udp_client.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/transport/udp_client.py
-index 4bec245..17c98bb 100644
---- /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/transport/udp_client.py
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/evcc/transport/udp_client.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/transport/udp_client.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/transport/udp_client.py
+index 4bec245..17c98bb
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/transport/udp_client.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/evcc/transport/udp_client.py
 @@ -7,7 +7,7 @@ from typing import Optional, Tuple
  
  from iso15118.shared.messages.timeouts import Timeouts
@@ -1281,10 +804,10 @@ index 4bec245..17c98bb 100644
 +        self.send_esdp(message)
 +        await self.receive()
 \ No newline at end of file
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/enums.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/enums.py
-index 7bc9502..089279e 100644
---- /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/enums.py
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/enums.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/enums.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/enums.py
+index 950494e..a0832e9
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/enums.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/enums.py
 @@ -173,6 +173,8 @@ class ISOV2PayloadTypes(IntEnum):
      """
  
@@ -1294,10 +817,10 @@ index 7bc9502..089279e 100644
      SDP_REQUEST = 0x9000
      SDP_RESPONSE = 0x9001
  
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/sdp.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/sdp.py
-index a0d8c9a..7652f90 100644
---- /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/sdp.py
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/messages/sdp.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/sdp.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/sdp.py
+index a0d8c9a..492f58c
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/sdp.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/messages/sdp.py
 @@ -8,8 +8,11 @@ from iso15118.shared.messages.enums import (
      DINPayloadTypes,
      ISOV2PayloadTypes,
@@ -1310,15 +833,6 @@ index a0d8c9a..7652f90 100644
  logger = logging.getLogger(__name__)
  
  MIN_TCP_PORT = 49152
-@@ -33,7 +36,7 @@ class Security(IntEnum):
-     @classmethod
-     def from_byte(cls, byte: bytes) -> "Security":
-         if int.from_bytes(byte, "big") == Security.TLS:
--            return Security.TLS
-+            return Security.NO_TLS
-         if int.from_bytes(byte, "big") == Security.NO_TLS:
-             return Security.NO_TLS
- 
 @@ -69,7 +72,6 @@ class Transport(IntEnum):
          logger.error(f"Invalid byte value for Transport enum: {byte.hex()}")
          raise ValueError
@@ -1469,7 +983,7 @@ index a0d8c9a..7652f90 100644
 +        else:
 +            secint=0 # Anything else than TCP is TLS for native format.
 +
-+        return ESDPResponse( 
++        return ESDPResponse(
 +        int.from_bytes(payload[:2], "big"),                 # ESDP Version
 +        int.from_bytes(payload[2:4], "big"),                # MaxPayload Size
 +        ipv6addr,                                           # IPv6 address
@@ -1530,10 +1044,10 @@ index a0d8c9a..7652f90 100644
 +        logger.error("Invalid ESDP request, will ignore")
 +
 +    return esdp_response
-diff --git /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/network.py /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/network.py
-index 9d7fc6e..75c56a6 100644
---- /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/network.py
-+++ /ext/dist/libexec/everest/3rd_party/josev/iso15118/shared/network.py
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/network.py /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/network.py
+index 9d7fc6e..75c56a6
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/network.py
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/iso15118/shared/network.py
 @@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
  
  SDP_MULTICAST_GROUP = "FF02::1"
@@ -1542,3 +1056,13 @@ index 9d7fc6e..75c56a6 100644
  
  
  def _get_link_local_addr(nic: str) -> Union[IPv6Address, None]:
+diff --git /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/requirements.txt /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/requirements.txt
+index 1c4f119..6dc77f6
+--- /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/requirements.txt
++++ /ext/cache/cpm/josev/8e29962fbca3dcf582c218eda37bf0389373a75e/Josev/requirements.txt
+@@ -6,3 +6,5 @@ aiofile>=3.7.4
+ py4j>=0.10.9.5
+ netifaces>=0.11.0
+ python-dateutil>=2.8.2
++hexdump==3.3
++pyasn1==0.4.8
