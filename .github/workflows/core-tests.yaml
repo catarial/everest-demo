@@ -10,8 +10,6 @@ jobs:
     steps:
       - name: Run core tests
         run: |
-          python3 -m venv /ext/build/venv
-          . /ext/build/venv/bin/activate
           cmake --build /ext/build --target install_everest_testing
-          pytest --everest-prefix /ext/dist core_tests/*.py framework_tests/*.py
+          /ext/build/venv/bin/pytest --everest-prefix /ext/dist core_tests/*.py framework_tests/*.py
 
