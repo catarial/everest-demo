@@ -1,5 +1,7 @@
 name: core-tests
 
+on: push
+
 jobs:
   run-core-tests:
     runs-on: ubuntu-latest
