@@ -9,4 +9,4 @@ jobs:
       image: ghcr.io/everest/everest-demo/manager:2025.6.1-dt-esdp
     steps:
       - name: Run core tests
-        run: /ext/source/tests/run-test.sh
+        run: sh /ext/source/tests/run-test.sh
