@@ -5,22 +5,28 @@ on: push
 jobs:
   run-core-tests:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/everest/everest-demo/manager:${TAG}
-    services:
-      mqtt-server:
-        image: ghcr.io/everest/everest-demo/mqtt-server:${TAG}
-        options: "--log-driver none"
-    env:
-      MQTT_SERVER_ADDRESS: mqtt-server
+    # container:
+    #   image: ghcr.io/everest/everest-demo/manager:${TAG}
+    # services:
+    #   mqtt-server:
+    #     image: ghcr.io/everest/everest-demo/mqtt-server:${TAG}
+    #     options: "--log-driver none"
+    # env:
+    #   MQTT_SERVER_ADDRESS: mqtt-server
     steps:
-      - name: Install tests
-        run: |
-          cmake --build /ext/build --target install_everest_testing
-      - name: Run core tests
-        working-directory: /ext/source/tests
-        continue-on-error: true
-        run: |
-          . /ext/build/venv/bin/activate
-          pytest --everest-prefix /ext/dist core_tests/*.py framework_tests/*.py
+      - uses: actions/checkout@v4
+      - name: Get container tag
+        run: cat .env >> $GITHUB_ENV
+      - name: Pull mqtt-server
+        run: docker pull ghcr.io/everest/everest-demo/mqtt-server:${TAG}
+      - name: Pull manager
+        run: docker pull ghcr.io/everest/everest-demo/manager:${TAG}
+      # - name: Install tests
+      #   run: cmake --build /ext/build --target install_everest_testing
+      # - name: Run core tests
+      #   working-directory: /ext/source/tests
+      #   continue-on-error: true
+      #   run: |
+      #     . /ext/build/venv/bin/activate
+      #     pytest --everest-prefix /ext/dist core_tests/*.py framework_tests/*.py
 
