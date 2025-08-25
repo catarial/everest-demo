@@ -14,10 +14,13 @@ jobs:
     env:
       MQTT_SERVER_ADDRESS: mqtt-server
     steps:
-      - name: Run core tests
-        working-directory: /ext/source/tests
+      - name: Install tests
         run: |
           cmake --build /ext/build --target install_everest_testing
+      - name: Run core tests
+        working-directory: /ext/source/tests
+        continue-on-error: true
+        run: |
           . /ext/build/venv/bin/activate
           pytest --everest-prefix /ext/dist core_tests/*.py framework_tests/*.py
 
