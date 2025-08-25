@@ -10,8 +10,7 @@ jobs:
     services:
       mqtt-server:
         image: ghcr.io/everest/everest-demo/mqtt-server:2025.6.1-dt-esdp
-        options:
-          log-driver: none
+        options: "--log-driver none"
     env:
       MQTT_SERVER_ADDRESS: mqtt-server
     steps:
