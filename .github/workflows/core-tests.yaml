@@ -5,18 +5,8 @@ on: push
 jobs:
   run-core-tests:
     runs-on: ubuntu-latest
-    # container:
-    #   image: ghcr.io/everest/everest-demo/manager:${TAG}
-    # services:
-    #   mqtt-server:
-    #     image: ghcr.io/everest/everest-demo/mqtt-server:${TAG}
-    #     options: "--log-driver none"
-    # env:
-    #   MQTT_SERVER_ADDRESS: mqtt-server
     steps:
       - uses: actions/checkout@v4
-      # - name: Run core tests
-      #   run: docker compose --file docker-compose.automated-tests.yml up
       - name: Get container tag
         run: cat .env >> $GITHUB_ENV
       - name: Pull mqtt-server
@@ -29,12 +19,3 @@ jobs:
         run: docker run --network everest --name mqtt-server -d ghcr.io/everest/everest-demo/mqtt-server:${TAG}
       - name: Run core tests
         run: docker run --network everest --name manager --workdir /ext/source/tests --env MQTT_SERVER_ADDRESS=mqtt-server ghcr.io/everest/everest-demo/manager:${TAG} sh ./run-test.sh
-      # - name: Install tests
-      #   run: cmake --build /ext/build --target install_everest_testing
-      # - name: Run core tests
-      #   working-directory: /ext/source/tests
-      #   continue-on-error: true
-      #   run: |
-      #     . /ext/build/venv/bin/activate
-      #     pytest --everest-prefix /ext/dist core_tests/*.py framework_tests/*.py
-
