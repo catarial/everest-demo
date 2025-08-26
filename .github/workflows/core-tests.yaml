@@ -21,6 +21,10 @@ jobs:
         run: docker pull ghcr.io/everest/everest-demo/mqtt-server:${TAG}
       - name: Pull manager
         run: docker pull ghcr.io/everest/everest-demo/manager:${TAG}
+      - name: Create docker network
+        run: docker network create everest
+      - name: Start mqtt-server
+        run: docker run --network everest --name -d mqtt-server ghcr.io/everest/everest-demo/mqtt-server:${TAG}
       # - name: Install tests
       #   run: cmake --build /ext/build --target install_everest_testing
       # - name: Run core tests
