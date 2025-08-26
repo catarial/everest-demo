@@ -15,18 +15,20 @@ jobs:
     #   MQTT_SERVER_ADDRESS: mqtt-server
     steps:
       - uses: actions/checkout@v4
+      # - name: Run core tests
+      #   run: docker compose --file docker-compose.automated-tests.yml up
+      - name: Get container tag
+        run: cat .env >> $GITHUB_ENV
+      - name: Pull mqtt-server
+        run: docker pull ghcr.io/everest/everest-demo/mqtt-server:${TAG}
+      - name: Pull manager
+        run: docker pull ghcr.io/everest/everest-demo/manager:${TAG}
+      - name: Create docker network
+        run: docker network create everest
+      - name: Start mqtt-server
+        run: docker run --network everest --name mqtt-server -d ghcr.io/everest/everest-demo/mqtt-server:${TAG}
       - name: Run core tests
-        run: docker compose --file docker-compose.automated-tests.yml up
-      # - name: Get container tag
-      #   run: cat .env >> $GITHUB_ENV
-      # - name: Pull mqtt-server
-      #   run: docker pull ghcr.io/everest/everest-demo/mqtt-server:${TAG}
-      # - name: Pull manager
-      #   run: docker pull ghcr.io/everest/everest-demo/manager:${TAG}
-      # - name: Create docker network
-      #   run: docker network create everest
-      # - name: Start mqtt-server
-      #   run: docker run --network everest --name -d mqtt-server ghcr.io/everest/everest-demo/mqtt-server:${TAG}
+        run: docker run --network everest --name manager --workdir /ext/source/tests ghcr.io/everest/everest-demo/manager:${TAG} sh ./run-test.sh
       # - name: Install tests
       #   run: cmake --build /ext/build --target install_everest_testing
       # - name: Run core tests
